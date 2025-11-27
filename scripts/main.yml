@@ -35,19 +35,19 @@
         cmd: "chroot {{ mount_point }} bash -c 'fgrep steve /etc/passwd || useradd -G adm,sudo,users -m steve'"
 
     - name: get UID for new user steve (else Ansible uses value from this host machine)
-      ansible.builtin.shell:
-        shell: "grep steve {{ mount_point }}/etc/passwd | cut -d':' -f3"
-        register: steve_uid
+      shell:
+        cmd: "grep steve {{ mount_point }}/etc/passwd | cut -d':' -f3"
+      register: steve_uid
 
     - name: get GID
-      ansible.builtin.shell:
-        shell: "grep steve {{ mount_point }}/etc/passwd | cut -d':' -f4"
-        register: steve_gid
+      shell:
+        cmd: "grep steve {{ mount_point }}/etc/passwd | cut -d':' -f4"
+      register: steve_gid
 
     - name: Make .ssh dir for user steve
       ansible.builtin.file:
-        owner: steve_uid
-        group: steve_gid
+        owner: "{{ steve_uid.stdout }}"
+        group: "{{ steve_gid.stdout }}"
         mode: 0700
         state: directory
         path: "{{ mount_point }}/home/steve/.ssh"
@@ -55,14 +55,14 @@
     - name: Copy ssh key authorization for steve
       ansible.builtin.copy:
         mode: 0600
-        owner: steve_uid
-        group: steve_gid
+        owner: "{{ steve_uid.stdout }}"
+        group: "{{ steve_gid.stdout }}"
         content: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDtfywu9p68pyagRFGbnYMcjGV8p8sgRZexh0NuXQ/M9BaJC6TaIPy3NWQjarq+ApkjF5ANsoDZeZpo70T2xkzy7j2BUrmKHu++7r6f5Yb9R865UwSO3hXP6ark1gNuRo3NB+a8JrstM0TLA5UVJgu/86AB1U82PBsl1sAtZqw4xWXJA7jH58HY1BpGPoqXi1DH0bRCO6JAZYB/Sh9ehvBBHPbX197IVmOxmZMV2e/t4l+NVLUM0Am9LWA5HJAt+WsUi18UNlyzcDFpJA5go+/IpUXW0nXWdIaPmwOMxn+GGUpDRVnlLdcHvDaoVGMYxy17tqWoVSEjVfYfA1JZ8HKT steve@Steves-MacBook-Pro.local"
         dest: "{{ mount_point }}/home/steve/.ssh/authorized_keys"
 
     - name: steve to password-free sudo (for post-boot Ansible operations)
-      ansible.builtin.shell:
-        shell: "echo 'steve ALL = (ALL) NOPASSWD: ALL' > /etc/sudoers.d/steve"
+      shell:
+        cmd: "echo 'steve ALL = (ALL) NOPASSWD: ALL' > {{ mount_point }}/etc/sudoers.d/steve"
 
     - name: Update apt
       ansible.builtin.command:
