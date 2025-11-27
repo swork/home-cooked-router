@@ -1,0 +1,94 @@
+---
+- hosts: localhost
+  connection: local
+  become: yes  # use sudo
+  gather_facts: false
+  vars_files:
+    - vars.yml
+
+  tasks:
+    - name: Ensure the mounted filesystem exists
+      ansible.builtin.stat:
+        path: "{{ mount_point }}"
+      register: mount_check
+
+    - name: Fail if mount point does not exist
+      ansible.builtin.fail:
+        msg: "FS is not mounted at {{ mount_point }}."
+      when: not mount_check.stat.exists
+
+    - name: Set the hostname, blindly
+      ansible.builtin.copy:
+        mode: 0644
+        directory_mode: 0755
+        owner: root
+        group: root
+        content: "gateway"
+        dest: "{{ mount_point }}/etc/hostname"
+        
+    - name: Turn on ssh service
+      ansible.builtin.command:
+        cmd: "chroot {{ mount_point }} systemctl enable ssh.service"
+
+    - name: create user 'steve'
+      ansible.builtin.command:
+        cmd: "chroot {{ mount_point }} bash -c 'fgrep steve /etc/passwd || useradd -G adm,sudo,users -m steve'"
+
+    - name: get UID for new user steve (else Ansible uses value from this host machine)
+      ansible.builtin.shell:
+        shell: "grep steve {{ mount_point }}/etc/passwd | cut -d':' -f3"
+        register: steve_uid
+
+    - name: get GID
+      ansible.builtin.shell:
+        shell: "grep steve {{ mount_point }}/etc/passwd | cut -d':' -f4"
+        register: steve_gid
+
+    - name: Make .ssh dir for user steve
+      ansible.builtin.file:
+        owner: steve_uid
+        group: steve_gid
+        mode: 0700
+        state: directory
+        path: "{{ mount_point }}/home/steve/.ssh"
+        
+    - name: Copy ssh key authorization for steve
+      ansible.builtin.copy:
+        mode: 0600
+        owner: steve_uid
+        group: steve_gid
+        content: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDtfywu9p68pyagRFGbnYMcjGV8p8sgRZexh0NuXQ/M9BaJC6TaIPy3NWQjarq+ApkjF5ANsoDZeZpo70T2xkzy7j2BUrmKHu++7r6f5Yb9R865UwSO3hXP6ark1gNuRo3NB+a8JrstM0TLA5UVJgu/86AB1U82PBsl1sAtZqw4xWXJA7jH58HY1BpGPoqXi1DH0bRCO6JAZYB/Sh9ehvBBHPbX197IVmOxmZMV2e/t4l+NVLUM0Am9LWA5HJAt+WsUi18UNlyzcDFpJA5go+/IpUXW0nXWdIaPmwOMxn+GGUpDRVnlLdcHvDaoVGMYxy17tqWoVSEjVfYfA1JZ8HKT steve@Steves-MacBook-Pro.local"
+        dest: "{{ mount_point }}/home/steve/.ssh/authorized_keys"
+
+    - name: steve to password-free sudo (for post-boot Ansible operations)
+      ansible.builtin.shell:
+        shell: "echo 'steve ALL = (ALL) NOPASSWD: ALL' > /etc/sudoers.d/steve"
+
+    - name: Update apt
+      ansible.builtin.command:
+        cmd: "chroot {{ mount_point }} apt update"
+
+    - name: Install netplan
+      ansible.builtin.command:
+        cmd: "chroot {{ mount_point }} apt install -y netplan.io"
+
+    - name: Static netplan configuration
+      ansible.builtin.copy:
+        mode: 0644
+        directory_mode: 0755
+        owner: root
+        group: root
+        content: |
+          network:
+            version: 2
+            ethernets:
+              en1lan:
+                match:
+                  mac: "c0:74:2b:fc:72:da"
+                dhcp: yes
+              en0isp:
+                match:
+                  mac: "c0:74:2b:fc:72:db"
+                address: 10.1.1.1/24
+        dest: "{{ mount_point }}/etc/netplan/four-oh-four-gateway.yaml"
+              

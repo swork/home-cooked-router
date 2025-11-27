@@ -1,0 +1,6 @@
+*~
+\#*\#
+build/
+
+# Don't burden GIT with the big images themselves.
+images/*.img
