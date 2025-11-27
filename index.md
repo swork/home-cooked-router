@@ -1,4 +1,5 @@
 ---
+layout: home
 ---
 Already acquired the OrangePi 5 Plus, Huawei's finest attempt to rule the 
 world by maybe embedding malicious intent directly in the firmware of the
