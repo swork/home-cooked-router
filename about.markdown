@@ -4,7 +4,7 @@ title: About
 permalink: /about/
 ---
 
-This is one among several projects I've let get clogged up and that I'm trying to clear quickly. These docs are mostly about me remembering what I did later, but if you find them useful or entertaining, well Good I say, and invite you to [my front page](https//ste.venclare.work/) where more such stuff is linked.
+This is one among several projects I've let get clogged up and that I'm trying to clear quickly. These docs are mostly about me remembering what I did later, but if you find them useful or entertaining, well Good I say, and invite you to [my front page](https://ste.venclare.work/) where more such stuff is linked.
 
 For ease and quickness the docs are rendered in Jekyll.
 
