@@ -1,9 +1,8 @@
 title: Home Cooked Router
 email: steve@work.renlabs.com
-description: >- # this means to ignore newlines until "baseurl:"
-  Setting up a SBC as the home router
-baseurl: "." # the subpath of your site, e.g. /blog
-url: "https://swork.github.io/home-cooked-router"
+description: "Setting up a SBC as the home router"
+baseurl: "home-cooked-router" # the subpath of your site, e.g. /blog
+url: "https://swork.github.io"
 github_username:  swork
 
 # Build settings
