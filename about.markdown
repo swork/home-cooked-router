@@ -8,6 +8,7 @@ This is one among several projects I've let get clogged up and that I'm trying t
 
 For ease and quickness the docs are rendered in Jekyll.
 
+The theme is their most basic, Minima:
 [jekyll][jekyll-organization] /
 [minima](https://github.com/jekyll/minima)
 
