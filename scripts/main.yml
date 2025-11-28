@@ -25,14 +25,19 @@
         group: root
         content: "gateway"
         dest: "{{ mount_point }}/etc/hostname"
-        
+
     - name: Turn on ssh service
       ansible.builtin.command:
         cmd: "chroot {{ mount_point }} systemctl enable ssh.service"
 
     - name: create user 'steve'
       ansible.builtin.command:
-        cmd: "chroot {{ mount_point }} bash -c 'fgrep steve /etc/passwd || useradd -G adm,sudo,users -m steve'"
+        cmd: "chroot {{ mount_point }} bash -c 'fgrep steve /etc/passwd || useradd -G adm,sudo,users -m -s /bin/bash steve'"
+
+    - name: set a password for steve (from env var PW)
+      ansible.builtin.shell:
+        cmd: >
+          echo -e "${PW:-temp}\n${PW:-temp}\n" | chroot {{ mount_point }} passwd steve"
 
     - name: get UID for new user steve (else Ansible uses value from this host machine)
       shell:
@@ -51,7 +56,7 @@
         mode: 0700
         state: directory
         path: "{{ mount_point }}/home/steve/.ssh"
-        
+
     - name: Copy ssh key authorization for steve
       ansible.builtin.copy:
         mode: 0600
