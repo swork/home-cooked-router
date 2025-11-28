@@ -27,4 +27,4 @@ Here's my FS build procedure:
 
 When it succeeds this procedure yields a bootable root FS card with a basic network config for my use and a basic user account for me, including authorizing my SSH key for immediate login.
 
-So next steps will be more Ansible work for post-boot fixups that end with the running router. I can't wait!
+So next steps will be more Ansible work for post-boot fixups that end with the running router. I can't wait! (Not really. I've been putting this entire process off for months, having had similar projects take far more time than budgeted over and over in the past. I do intend to finish, though...)
