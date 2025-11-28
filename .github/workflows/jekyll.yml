@@ -37,9 +37,12 @@ jobs:
       - name: Setup Ruby
         # https://github.com/ruby/setup-ruby/releases/tag/v1.207.0
         uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4' # Not needed with a .ruby-version file
 
       - name: Install dependencies
         run: bundle install
+        working-directory: ./docs
 
       - name: Build with Jekyll
         run: bundle exec jekyll build
