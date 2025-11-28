@@ -42,7 +42,6 @@ jobs:
 
       - name: Install dependencies
         run: bundle install
-        working-directory: ./docs
 
       - name: Build with Jekyll
         run: bundle exec jekyll build
