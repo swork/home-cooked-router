@@ -7,6 +7,10 @@
     - vars.yml
 
   tasks:
+    environment:
+      USER: lookup('env', 'USER')
+      PW: lookup('env', 'PW')
+
     - name: Ensure the mounted filesystem exists
       ansible.builtin.stat:
         path: "{{ mount_point }}"
@@ -30,44 +34,52 @@
       ansible.builtin.command:
         cmd: "chroot {{ mount_point }} systemctl enable ssh.service"
 
-    - name: create user 'steve'
+    - name: create user ('steve' for me...)
       ansible.builtin.command:
         cmd: "chroot {{ mount_point }} bash -c 'fgrep steve /etc/passwd || useradd -G adm,sudo,users -m -s /bin/bash steve'"
 
-    - name: set a password for steve (from env var PW)
+    - name: set a password for user
       ansible.builtin.shell:
         cmd: >
-          echo -e "${PW:-temp}\n${PW:-temp}\n" | chroot {{ mount_point }} passwd steve"
+          echo -e "temp\ntemp\n" | chroot {{ mount_point }} passwd steve"
 
-    - name: get UID for new user steve (else Ansible uses value from this host machine)
+    - name: get UID for new user (else Ansible uses value from this host machine)
       shell:
         cmd: "grep steve {{ mount_point }}/etc/passwd | cut -d':' -f3"
-      register: steve_uid
+      register: user_uid
 
     - name: get GID
       shell:
         cmd: "grep steve {{ mount_point }}/etc/passwd | cut -d':' -f4"
-      register: steve_gid
+      register: user_gid
 
-    - name: Make .ssh dir for user steve
+    - name: Make .ssh dir for user
       ansible.builtin.file:
-        owner: "{{ steve_uid.stdout }}"
-        group: "{{ steve_gid.stdout }}"
+        owner: "{{ user_uid.stdout }}"
+        group: "{{ user_gid.stdout }}"
         mode: 0700
         state: directory
-        path: "{{ mount_point }}/home/steve/.ssh"
+        path: "{{ mount_point }}/home/{{ ansible_env.USER }}/.ssh"
 
-    - name: Copy ssh key authorization for steve
+    - name: Copy ssh key authorization for USER
       ansible.builtin.copy:
         mode: 0600
-        owner: "{{ steve_uid.stdout }}"
-        group: "{{ steve_gid.stdout }}"
-        content: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDtfywu9p68pyagRFGbnYMcjGV8p8sgRZexh0NuXQ/M9BaJC6TaIPy3NWQjarq+ApkjF5ANsoDZeZpo70T2xkzy7j2BUrmKHu++7r6f5Yb9R865UwSO3hXP6ark1gNuRo3NB+a8JrstM0TLA5UVJgu/86AB1U82PBsl1sAtZqw4xWXJA7jH58HY1BpGPoqXi1DH0bRCO6JAZYB/Sh9ehvBBHPbX197IVmOxmZMV2e/t4l+NVLUM0Am9LWA5HJAt+WsUi18UNlyzcDFpJA5go+/IpUXW0nXWdIaPmwOMxn+GGUpDRVnlLdcHvDaoVGMYxy17tqWoVSEjVfYfA1JZ8HKT steve@Steves-MacBook-Pro.local"
-        dest: "{{ mount_point }}/home/steve/.ssh/authorized_keys"
+        owner: "{{ user_uid.stdout }}"
+        group: "{{ user_gid.stdout }}"
+        source: "/home/{{ ansible_env.USER }}/.ssh/id_rsa.pub"
+        dest: "{{ mount_point }}/home/{{ ansible_env.USER }}/.ssh/authorized_keys"
 
-    - name: steve to password-free sudo (for post-boot Ansible operations)
+    - name: USER to password-free sudo (for post-boot Ansible operations)
       shell:
         cmd: "echo 'steve ALL = (ALL) NOPASSWD: ALL' > {{ mount_point }}/etc/sudoers.d/steve"
+
+    - name: Rename network interface 1
+      file:
+        mode: 0600
+        destination: /etc/udev/rules.d/90-naming-netifs.rules
+        content: >
+          SUBSYSTEM=="net", ACTION=="add", ATTR{address}=="c0:74:2b:fc:72:da", NAME="en0dmz"
+          SUBSYSTEM=="net", ACTION=="add", ATTR{address}=="c0:74:2b:fc:72:db", NAME="en1lan"
 
     - name: Update apt
       ansible.builtin.command:
@@ -79,7 +91,7 @@
 
     - name: Static netplan configuration
       ansible.builtin.copy:
-        mode: 0644
+        mode: 0600
         directory_mode: 0755
         owner: root
         group: root
@@ -87,13 +99,24 @@
           network:
             version: 2
             ethernets:
+              en0dmz:
+                match:
+                  macaddress: "c0:74:2b:fc:72:da"
+                dhcp4: yes
+                routes:
+                  - to: 192.168.86.0/24
+                    via: 192.168.86.1
+                    metric: 100
+                    on-link: false
               en1lan:
                 match:
-                  mac: "c0:74:2b:fc:72:da"
-                dhcp: yes
-              en0isp:
-                match:
-                  mac: "c0:74:2b:fc:72:db"
-                address: 10.1.1.1/24
+                  macaddress: "c0:74:2b:fc:72:db"
+                addresses: [192.168.86.1/24]
+                nameservers:
+                  addresses: [1.1.1.1, 8.8.8.8]
+                routes:
+                  - to: default
+                    via: 192.168.86.1
+                    metric: 100
+                    on-link: true
         dest: "{{ mount_point }}/etc/netplan/four-oh-four-gateway.yaml"
-              

@@ -4,4 +4,4 @@ env: "{{ env | default('dev') }}"
 mount_point: "/tmp/img_mountpoint"
 ansible_python_interpreter: "/usr/bin/python3"
 
-    
+
