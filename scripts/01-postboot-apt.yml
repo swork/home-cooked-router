@@ -1,0 +1,28 @@
+---
+- hosts: gateway.local
+  connection: ssh
+  become: yes
+  gather_facts: true
+
+  tasks:
+    - name: Install packages
+      shell:
+        cmd: >-
+          apt update && apt install -y firewalld apt-forktracer avahi-daemon avahi-utils libnss-mdns
+
+    - name: Remove packages
+      shell:
+        cmd: >-
+          apt remove -y smartmontools docker-ce wiringpi docker-buildx-plugin
+          docker-compose-plugin docker-ce-cli containerd.io docker-ce-cli
+          iperf3 libiperf0
+
+    - name: Remove orphaned dependencies
+      shell:
+        cmd: >-
+          apt autoremove -y
+
+    - name: Upgrade packages
+      shell:
+        cmd: >-
+          apt upgrade -y
